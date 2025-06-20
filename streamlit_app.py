@@ -43,21 +43,23 @@ def main():
         f for f in os.listdir(image_dir) if f.lower().endswith((".png", ".jpg", ".jpeg"))
     )
 
-    col1, col2 = st.columns([1, 2])
+    selected_img = st.selectbox("Select image", images)
 
-    with col1:
-        st.write("Images")
-        selected_img = st.selectbox("Select image", images)
-        st.table(pd.DataFrame({"Image": images}))
+    if selected_img:
+        img_path = os.path.join(image_dir, selected_img)
+        st.image(img_path, caption=selected_img)
 
-    with col2:
-        if selected_img:
-            img_path = os.path.join(image_dir, selected_img)
-            st.image(img_path, caption=selected_img)
-            probs = classify_image(model, preprocess, img_path, prompts, device)
-            st.write("Classification")
-            for label, prob in probs.items():
-                st.write(f"{label}: {prob:.4f}")
+        probs = classify_image(model, preprocess, img_path, prompts, device)
+        sorted_probs = sorted(probs.items(), key=lambda x: x[1], reverse=True)
+
+        top_label, top_prob = sorted_probs[0]
+        st.subheader("Prediction")
+        st.write(f"Top label: {top_label} ({top_prob*100:.1f}%)")
+
+        df = pd.DataFrame(sorted_probs, columns=["Label", "Probability (%)"])
+        df["Probability (%)"] = (df["Probability (%)"] * 100).map(lambda x: f"{x:.1f}%")
+        st.subheader("Detailed probabilities")
+        st.table(df)
 
 
 if __name__ == "__main__":
